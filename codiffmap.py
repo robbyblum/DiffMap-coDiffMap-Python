@@ -1,26 +1,23 @@
-##-- coDiffMap
-##-- May 13, 2019
-##-- Core Python DiffMap functionality written by ROBERT BLUM
-##-- coDiffMap adaptation written by JARED ROVNY
-##
-##
+# -- coDiffMap
+# -- May 13, 2019
+# -- Core Python DiffMap functionality written by ROBERT BLUM
+# -- coDiffMap adaptation written by JARED ROVNY
 
-
-##-- processing
+# -- processing
 # 1. fft_phase_1d
 # 2. get_phasecorr
 
-##-- preparation
+# -- preparation
 # 3. get_interesting_columns
 # 4. get_interesting_mask_columns
 # 5. get_interesting_columns_all2D
 
-##-- sampling
+# -- sampling
 # 6. sampling_mask
 # 7. stagger_sample
 # 8. sparsify_staggered
 
-##-- coDiffMap core
+# -- coDiffMap core
 # 9. setup_and_run_codiffmap
 # 10. run_codiffmap_1D
 # 11. make_push_points
@@ -28,16 +25,15 @@
 # 13. p2_proj_star
 # 14. difference_map_star
 
-##-- analysis
+# -- analysis
 # 15. peak_amplitudes
-
-
 
 
 import numpy as np
 import copy as copy
 
-##---- data processing
+
+# ---- data processing
 
 def fft_phase_1d(origdata_2d):
     """
@@ -93,10 +89,7 @@ def get_phasecorr(N, offbool):
                   N * (N / 2 - np.arange(N)))
 
 
-
-
-
-##---- data preparation
+# ---- data preparation
 
 def get_interesting_columns(datapath, column_indices, spectrum_index, n_rows):
     import numpy as np
@@ -109,8 +102,8 @@ def get_interesting_columns(datapath, column_indices, spectrum_index, n_rows):
 
     data_source = str(datapath) + "_" + str(spectrum_index) + ".txt"
 
-    real_cols = list(range(0, n_rows*2, 2))
-    imag_cols = list(range(1, n_rows*2, 2))
+    real_cols = list(range(0, n_rows * 2, 2))
+    imag_cols = list(range(1, n_rows * 2, 2))
     origdata_2d = np.loadtxt(data_source, usecols=real_cols) \
         - 1.j * np.loadtxt(data_source, usecols=imag_cols)
 
@@ -129,29 +122,29 @@ def get_interesting_mask_columns(mask, column_indices):
     return compressed_mask
 
 
-def get_interesting_columns_all2D(datapath, column_indices, number_of_spectra, n_rows):
+def get_interesting_columns_all2D(datapath, column_indices, number_of_spectra,
+                                  n_rows):
     """
     This will return a LIST of 2D DATA SETS. Each 2D spectrum in the list
     will just be from the columns chosen by the user.
     """
-    
+
     n_columns = len(column_indices)
-    
-    all_relevant_data = np.zeros((number_of_spectra,n_columns,n_rows), dtype=np.complex)
+
+    all_relevant_data = np.zeros((number_of_spectra, n_columns, n_rows),
+                                 dtype=np.complex)
     for spectrum_index in range(1, number_of_spectra + 1):
-        new_data = get_interesting_columns(datapath, column_indices, spectrum_index, n_rows)
-        all_relevant_data[spectrum_index-1] = new_data
+        new_data = get_interesting_columns(datapath, column_indices,
+                                           spectrum_index, n_rows)
+        all_relevant_data[spectrum_index - 1] = new_data
     return all_relevant_data
 
 
-
-
-
-##---- coDiffMap functions
+# ---- coDiffMap functions
 
 
 def setup_and_run_codiffmap(data_in, Nsparse, mask, offbool, push_param,
-                               N_iter):
+                            N_iter):
     """
     Shortcut to set up the required input data and run the diffmap function...
     Note: mask needs to correspond to "data_in," column by column.
@@ -171,16 +164,15 @@ def setup_and_run_codiffmap(data_in, Nsparse, mask, offbool, push_param,
             push_points_1d = push_points[slice2d][column].copy()
 
             data_out_1d = run_codiffmap_1D(data_gaps_1d, N_iter,
-                                                     meas_points_1d, mask_1d,
-                                                     push_points_1d, push_param)
+                                           meas_points_1d, mask_1d,
+                                           push_points_1d, push_param)
             data_out[slice2d][column] = np.asarray(data_out_1d.copy())
 
     return data_out
 
 
-
 def run_codiffmap_1D(data_in, N_iter, measured_points, mask,
-                               push_points, push_param):
+                     push_points, push_param):
     """
     Runs the difference map on data_in, with N_iter iterations.
     Outputs P2(D*(data_in)^N); that is; it applies P2 at the end of the
@@ -210,20 +202,19 @@ def run_codiffmap_1D(data_in, N_iter, measured_points, mask,
     return data_out
 
 
-
 def make_push_points(data, stagger_sampling_mask):
     """
     This function will take your data (many 2D slices), and a staggered
     sampling schedule, and make a data array of "push" points, f2-column by
-    f2-column. For a given 2D slice, these push points will be: 
-    -- at measured t1 points: =NaN 
+    f2-column. For a given 2D slice, these push points will be:
+    -- at measured t1 points: =NaN
     -- at unmeasured t1 points: is equal to the data at the
     same t1, but from a different (the closest available) 2D slice.
     """
-    
+
     n_slices, n_columns, n_rows = data.shape
-    
-    push_points = np.zeros((n_slices,n_columns,n_rows), dtype=np.complex)
+
+    push_points = np.zeros((n_slices, n_columns, n_rows), dtype=np.complex)
     push_points_1d = np.zeros(n_rows, dtype=np.complex)
 
     # walk through the data column-by-column
@@ -264,7 +255,6 @@ def make_push_points(data, stagger_sampling_mask):
                         break
             push_points[spectrum][column] = push_points_1d
     return np.asarray(push_points)
-
 
 
 def p1_proj(data_t, mask, offbool):
@@ -342,7 +332,7 @@ def difference_map_star(data_t, measured_points, mask, offbool, push_points,
     return d_data_t
 
 
-##---- sampling
+# ---- sampling
 
 
 def sampling_mask(Ndense, Nsparse, offbool, lastpoint_bool):
@@ -396,9 +386,6 @@ def sampling_mask(Ndense, Nsparse, offbool, lastpoint_bool):
         # row_mask_pos))
 
     return row_mask_out
-
-
-
 
 
 def stagger_sample(N3d, Ndense, Nsparse, offbool):
@@ -464,9 +451,6 @@ def stagger_sample(N3d, Ndense, Nsparse, offbool):
     return stagger_sampling_mask
 
 
-
-
-
 def sparsify_staggered(data, Nsparse, N3D, offbool):
     """
     "Undersamples" a dense data set using the staggered pattern.
@@ -514,7 +498,7 @@ def sparsify_staggered(data, Nsparse, N3D, offbool):
     return sparse_data, measured_points, push_points
 
 
-##---- Data analysis
+# ---- Data analysis
 
 
 def peak_amplitudes(data, peak_list, grid_bool):
@@ -529,8 +513,8 @@ def peak_amplitudes(data, peak_list, grid_bool):
     # make sure the data are in arrays
     data = np.array(data)
     peak_list = np.array(peak_list)
-    
-    if len(data.shape)==2:
+
+    if len(data.shape) == 2:
         Nspectra = 1
     else:
         Nspectra = data.shape[0]
@@ -572,9 +556,10 @@ def peak_amplitudes(data, peak_list, grid_bool):
             data_right_fr = (data_right_f * pcorr_f1).real
 
             amp = 0
-            amp += grid_bool*np.sum(data_left_fr[peak_col - 1:peak_col + 2])
-            amp += np.sum(data_center_fr[peak_col - grid_bool*1:peak_col + 1 + grid_bool])
-            amp += grid_bool*np.sum(data_right_fr[peak_col - 1:peak_col + 2])
+            amp += grid_bool * np.sum(data_left_fr[peak_col - 1:peak_col + 2])
+            amp += np.sum(data_center_fr[peak_col - grid_bool * 1:
+                                         peak_col + 1 + grid_bool])
+            amp += grid_bool * np.sum(data_right_fr[peak_col - 1:peak_col + 2])
 
             if Nspectra == 1:
                 peak_gridamps[peak_num] = amp
