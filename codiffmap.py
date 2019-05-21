@@ -218,42 +218,39 @@ def make_push_points(data, stagger_sampling_mask):
     push_points_1d = np.zeros(n_rows, dtype=np.complex)
 
     # walk through the data column-by-column
-    for column in np.arange(n_columns):
+    for col in np.arange(n_columns):
 
         # walk through the data spectrum-by-spectrum
-        for spectrum in np.arange(n_slices):
-            # first, initialize: push_points_1d is NaN for sampled points
-            push_points_1d = [np.nan if x == 1 else 0 for x in
-                              stagger_sampling_mask[spectrum]]
+        for spec in np.arange(n_slices):
+            # first, initialize: push_points_1d is NaN for sampled points (this
+            # basically inverts which entries are NaN relative to
+            # stagger_sampling_mask)
+            push_points_1d = np.where(np.isnan(stagger_sampling_mask[spec]),
+                                      0, np.nan).astype(np.complex)
 
             # now, for this particular {column,spectrum},
             # and FOR EACH POINT IN PUSH_POINTS, walk through the other
             # spectra and find a suitable data point
             for i in np.arange(n_rows):
-                if(np.isnan(push_points_1d[i])):
-                    continue
-                else:
+                if ~np.isnan(push_points_1d[i]):
                     # now, walk through the spectra again: for e.g. a missing
                     # point in spectrum=3, look at spectra #4,2,5,1,...,etc.,
                     # until a point is found
-                    for spec in np.arange(2 * n_slices):
-                        # 1,-1,2,-2,3,-3...
-                        ds = (np.floor(spec / 2) + 1) * (-1.0)**spec
-                        this_spectrum = spectrum + ds
-                        # make sure our spectrum index isn't out of bounds
-                        if(this_spectrum < 0 or this_spectrum >= n_slices):
-                            continue
-                        # if the point has been sampled in this spectrum, use
-                        # it, and stop looking
-                        if(stagger_sampling_mask[int(this_spectrum)][i] == 1):
-                            push_points_1d[i] = \
-                                data[int(this_spectrum)][column][i]
-                            break
+                    for spec2 in np.arange(2 * n_slices):
+                        # add +1, -1, +2, -2, +3, -3... to the spectrum index
+                        dspec = spec + (spec2 // 2 + 1) * (-1)**spec2
+                        # make sure our new spectrum index isn't out of bounds
+                        if 0 <= dspec < n_slices:
+                            # if the point has been sampled in this spectrum,
+                            # use it, and stop looking
+                            if stagger_sampling_mask[dspec][i] == 1:
+                                push_points_1d[i] = data[dspec, col, i]
+                                break
                     # if there were no sampled point found, break with error.
                     else:
                         print('ERROR: no suitable data point found!')
                         break
-            push_points[spectrum][column] = push_points_1d
+            push_points[spec, col, :] = push_points_1d
     return np.asarray(push_points)
 
 
