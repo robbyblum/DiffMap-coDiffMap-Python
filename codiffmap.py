@@ -415,7 +415,10 @@ def stagger_sample(N3d, Ndense, Nsparse, offbool):
     # the first point.
     for i in np.arange(N3d):
 
-        sampling_mask_2[Ndense - 1:Ndense + 1] = 1
+        if offbool:
+            sampling_mask_2[Ndense - 1:Ndense + 1] = 1
+        else:
+            sampling_mask_2[Ndense] = 1
         stagger_sampling_mask.append(list(sampling_mask_2))
         sampling_mask_1 = sampling_mask_2.copy()
 
