@@ -11,7 +11,7 @@ setuptools.setup(
     version="0.1.0-dev",
     author="Robby Blum",
     author_email="robbyblum@gmail.com",
-    description="A small example package",
+    description="Python DiffMap and coDiffMap code",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://https://github.com/robbyblum/DiffMap-coDiffMap-Python",
