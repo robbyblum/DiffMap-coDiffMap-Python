@@ -248,53 +248,7 @@ def sparsify(data, Nsparse, offbool):
     return sparse_data, measured_points
 
 
-def alias_overlap_wrap(mask, peaki, Nt1max):
-    """
-    Calculates the alias overlap metric (wraparound version) for a given peak
-    location.
-
-    Returns an array of length Nt1max giving the metric results for each Nt1.
-    At each Nt1, alias_out has the cumulative number of "mask hits" across all
-    the alias harmonics checked.
-    """
-    # initialize output wave. Set index 0 to nan, because it's not meaningful
-    alias_out = np.zeros(Nt1max)
-#     alias_out[0] = np.nan
-    alias_out[0] = 128
-
-    # length of the mask vector
-    N = len(mask)
-
-    # array of indices of nonzero mask elements
-    masknz = mask.nonzero()[0]
-
-    # k = number of harmonics to calculate
-    # I haven't proven this, but I believe you don't need more than Nt1max/2.
-    # Going up to Nt1max just to be safe. Anything beyond that just adds
-    # numbers to alias_out[1], forever.
-    for k in range(1, Nt1max + 1):
-
-        # loop over valid Nt1 values for harmonic k: Nt1 <= np.ceil(Nt1max/k)
-        for Nt1 in range(1, int(np.ceil(Nt1max / k) + 1)):
-
-            # Locate our points of interest, where we'll look for mask points.
-            # As Nt1+=1, jump usually changes by 2, so look at the "next
-            #     closer" point as well
-            # Python modulus (a % b) takes the sign of b,
-            #     so this is simpler than in Igor!
-            jump = Nt1 * k * N / Nt1max
-            i_alias = np.mod((peaki + jump, peaki + jump - 1,
-                              peaki - jump, peaki - jump + 1), N)
-
-            # self-collisions don't count
-            if peaki not in i_alias:
-                # add up instances of i_alias in masknz
-                alias_out[Nt1] += sum(np.in1d(i_alias, masknz))
-
-    return alias_out
-
-
-def alias_overlap_wrap3(mask, peaki, Nt1max, beta):
+def alias_overlap_wrap(mask, peaki, Nt1max, beta):
     """
     Calculates the alias overlap metric (wraparound version) for a given peak
     location.
@@ -353,7 +307,7 @@ def mask_collision_metric(mask, peaki, Nt1max, beta):
     all it does is calculate whether the values are nonzero.
     """
 
-    return alias_overlap_wrap3(mask, peaki, Nt1max, beta) > 0
+    return alias_overlap_wrap(mask, peaki, Nt1max, beta) > 0
 
 
 def setup_and_run_diffmap(data_in, Nsparse, mask, offbool, N_iter):
