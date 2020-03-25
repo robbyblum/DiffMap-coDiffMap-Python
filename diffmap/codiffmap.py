@@ -30,7 +30,6 @@
 # 16. peak_amplitudes
 
 import numpy as np
-import copy as copy
 from . import util
 
 
@@ -97,29 +96,30 @@ def setup_and_run_codiffmap(data_in, Nsparse, mask, offbool, push_param,
     Shortcut to set up the required input data and run the diffmap function...
     Note: mask needs to correspond to "data_in," column by column.
     """
-    Ndense = np.int(len(data_in[0][0]) / 2)
-    N3D = np.int(len(data_in))
+    N3D = data.shape[0]
+    Ncols = data.shape[1]
+    Ndense = data.shape[-1] // 2
 
     data_gaps, meas_points, push_points = sparsify_staggered(data_in, Nsparse,
                                                              N3D, offbool)
-    data_out = np.copy(data_in)
+    data_out = np.copy(data_gaps)
 
-    for slice2d in np.arange(len(data_in)):
-        for column in np.arange(len(data_in[0])):
-            data_gaps_1d = data_gaps[slice2d][column].copy()
-            meas_points_1d = meas_points[slice2d][column].copy()
-            mask_1d = mask[column].copy()
-            push_points_1d = push_points[slice2d][column].copy()
+    for slice2d in np.arange(N3D):
+        for column in np.arange(Ncols):
+            data_gaps_1d = data_gaps[slice2d, column, :]
+            meas_points_1d = meas_points[slice2d, column, :]
+            mask_1d = mask[column, :]
+            push_points_1d = push_points[slice2d, column, :]
 
             data_out_1d = run_codiffmap_1D(data_gaps_1d, N_iter,
-                                           meas_points_1d, mask_1d,
+                                           meas_points_1d, mask_1d, offbool,
                                            push_points_1d, push_param)
-            data_out[slice2d][column] = np.asarray(data_out_1d.copy())
+            data_out[slice2d, column, :] = data_out_1d
 
     return data_out
 
 
-def run_codiffmap_1D(data_in, N_iter, measured_points, mask,
+def run_codiffmap_1D(data_in, N_iter, measured_points, mask, offbool,
                      push_points, push_param):
     """
     Runs the difference map on data_in, with N_iter iterations.
@@ -136,7 +136,7 @@ def run_codiffmap_1D(data_in, N_iter, measured_points, mask,
     # update: it's not stable, alas
     # N = len(data_in)
     # offbool = data_in.real[int(N/2)] == data_in.real[int(N/2 - 1)]
-    offbool = 1
+    # offbool = 1
     # do the difference map N_iter times
     for n in np.arange(N_iter):
         data_out = difference_map_star(data_out, measured_points, mask,
@@ -416,9 +416,9 @@ def peak_amplitudes(data, peak_list, grid_bool):
         Nspectra = data.shape[0]
 
     # initialize the data shape and amp_list to output, and the phase
-    # correction
+    # correction...wait, amp_list isn't used anywhere
     N1 = data.shape[-1]
-    amp_list = peak_list.copy()
+    # amp_list = peak_list.copy()
     pcorr_f1 = util.get_phasecorr(N1, 1)
 
     # we output a peak for each 2d spectrum: peak_amp[spectrum, peak]

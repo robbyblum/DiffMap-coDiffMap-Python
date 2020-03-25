@@ -202,8 +202,8 @@ def sampling_mask(Ndense, Nsparse, offbool, lastpoint_bool=0):
     a given number of sparse points. Ndense is number of dense points
     in t >= 0! The output wave will be length (2*Ndense).
 
-    This version of sampling_mask has a ensures we have sampled the ``last'',
-    greatest-|t1| point.
+    This version of sampling_mask has an option to modify the quasi-even
+    pattern to ensure that we have sampled the ``last'', greatest-|t1| point.
 
     if offbool == True, then the central point (at t = dw/2) is reflected
     to the t < 0 side of the vector. If offbool == False, then the central
