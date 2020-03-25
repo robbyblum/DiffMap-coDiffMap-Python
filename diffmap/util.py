@@ -161,3 +161,53 @@ def states_to_mri(data, p0=0, offbool=(False, False), invert_sin=False):
         data_out[:, N2mid] /= 2
 
     return data_out
+
+
+def sampling_mask(Ndense, Nsparse, offbool, lastpoint_bool=0):
+    """
+    Makes a "row mask" array, for a given number of dense points and
+    a given number of sparse points. Ndense is number of dense points
+    in t >= 0! The output wave will be length (2*Ndense).
+
+    This version of sampling_mask has a ensures we have sampled the ``last'',
+    greatest-|t1| point.
+
+    if offbool == True, then the central point (at t = dw/2) is reflected
+    to the t < 0 side of the vector. If offbool == False, then the central
+    point is at t = 0 and isn't duplicated.
+
+    NOTE: the rounding convention in Igor is "away from zero." In numpy/python3
+    it's "towards even." I'm implementing the Igor version here, but I might
+    change it to the python version later. It will change the row choices in
+    some cases, though!
+
+    TODO: enforce 1 <= Nsparse <= Ndense properly
+    """
+    # initialize positive side as nans, not zeroes
+    row_mask_pos = np.full(Ndense, np.nan)
+    # row_mask_pos = np.zeros(Ndense)
+
+    row_space = (Ndense - lastpoint_bool) / (Nsparse - lastpoint_bool)
+
+    # round away from zero for n.5
+    row_inds = (np.trunc((row_space * np.arange(Nsparse)) + 0.5)).astype(int)
+
+    # round towards even integers for n.5
+    # row_inds = np.round((row_spacing*np.arange(Nsparse)).astype(int)
+
+    # set half-wave to 1 at indicated places
+    row_mask_pos[row_inds] = 1
+
+    # make the length 2*Ndense output array, according to whether offbool is on
+    # Note: for offbool = 0, we set the first point = 1 instead of nan. This
+    #       way, np.nansum(row_mask_out) is the same in both cases.
+    # CAVEAT: THIS IS NOT THE CASE IN THIS FUNCTION YET FOR SOME REASON
+    if offbool:
+        row_mask_out = np.concatenate((row_mask_pos[::-1], row_mask_pos))
+    else:
+        row_mask_out = np.concatenate(([np.nan], row_mask_pos[:0:-1],
+                                       row_mask_pos))
+        # row_mask_out = np.concatenate(([1], row_mask_pos[:0:-1],
+        # row_mask_pos))
+
+    return row_mask_out

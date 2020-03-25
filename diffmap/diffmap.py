@@ -167,55 +167,6 @@ def difference_map(data_t, measured_points, mask, offbool):
     return d_data_t
 
 
-def sampling_mask(Ndense, Nsparse, offbool):
-    """
-    Makes a "row mask" array, for a given number of dense points and
-    a given number of sparse points. Ndense is number of dense points
-    in t >= 0! The output wave will be length (2*Ndense).
-
-    if offbool == True, then the central point (at t = dw/2) is reflected
-    to the t < 0 side of the vector. If offbool == False, then the central
-    point is at t = 0 and isn't duplicated.
-
-    NOTE: the rounding convention in Igor is "away from zero." In numpy/py3
-    it's "towards even." I'm implementing the Igor version here, but I might
-    change it to the python version later. It _will_ change the row choices in
-    some cases, though!
-
-    TODO: enforce 1 <= Nsparse <= Ndense properly
-    """
-    # initialize positive side as nans, not zeroes
-    row_mask_pos = np.full(Ndense, np.nan)
-    # row_mask_pos = np.zeros(Ndense)
-
-    row_space = Ndense / Nsparse
-
-    # round away from zero for n.5
-    row_inds = (np.trunc((row_space * np.arange(Nsparse)) + 0.5)).astype(int)
-
-    # round towards even integers for n.5
-    # row_inds = np.round((row_space*np.arange(Nsparse))
-
-    # set half-wave to 1 at indicated places
-    row_mask_pos[row_inds] = 1
-
-    # make the length 2*Ndense output array, according to whether offbool is on
-    # Note: I wonder if it would make more sense, for the offbool = 0 case, to
-    #       set the first point = 1 instead of nan. That way you'd have the
-    #       same np.nansum(row_mask_out) in both cases. In that case, the first
-    #       point is always a zero-pad anyway, so we can probably say we
-    #       "measured" it?
-    # Update, much later: Yes, that would be a good idea!
-    if offbool:
-        row_mask_out = np.concatenate((row_mask_pos[::-1], row_mask_pos))
-    else:
-        # row_mask_out = np.concatenate(
-        #     ([np.nan], row_mask_pos[:0:-1], row_mask_pos))
-        row_mask_out = np.concatenate(([1], row_mask_pos[:0:-1], row_mask_pos))
-
-    return row_mask_out
-
-
 def sparsify(data, Nsparse, offbool):
     """
     "Undersamples" a dense data set. This function figures out the sampling
@@ -237,7 +188,7 @@ def sparsify(data, Nsparse, offbool):
     measured_points = data.copy()
 
     if Ndense >= Nsparse:
-        row_mask = sampling_mask(Ndense, Nsparse, offbool)
+        row_mask = util.sampling_mask(Ndense, Nsparse, offbool)
 
         sparse_data[np.isnan(row_mask)] = 0
         measured_points *= row_mask
