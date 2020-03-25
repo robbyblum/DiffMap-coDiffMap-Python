@@ -8,14 +8,15 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="DiffMap-coDiffMap-Python",
-    version="0.1.0-dev",
+    version="0.1.1.dev1",
     author="Robby Blum",
     author_email="robbyblum@gmail.com",
     description="Python DiffMap and coDiffMap code",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://https://github.com/robbyblum/DiffMap-coDiffMap-Python",
-    packages=setuptools.find_packages(),
+    packages=['diffmap'],
+    install_requires=['numpy'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
