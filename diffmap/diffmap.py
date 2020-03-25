@@ -3,8 +3,6 @@
 # functions are in no particular order yet
 # TODO: make sure it's nicely interoperable with nmrglue
 
-# is it ok to use "from .utils import *" here or should I preserve the
-# namespace for the utility functions? Going to do the latter...
 import numpy as np
 from . import util
 

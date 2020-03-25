@@ -4,80 +4,6 @@
 import numpy as np
 
 
-def get_phasecorr(N, offbool):
-    """
-    Creates a phase correction array, to make the FFT of a Hermitian
-    array all real. **Only works in 1D right now!**
-    'N' is the length of the vector
-    'offbool' is a boolean that controls whether there's a dt/2 shift
-    in the time values:
-    - if time[N/2] is t = 0, set offbool = false
-    - if time[N/2] is t = dt/2, set offbool = true
-
-    Returns a 1D vector 'phasecorr' of length N.
-
-    This function assumes an even number of points, so it's yet not as general
-    as it could be.
-    """
-    # phasecorr = np.exp(-1j*2*np.pi*(N/2-0.5*offbool)/N*(N/2-np.arange(N)))
-
-    return np.exp(-1j * 2 * np.pi * (N / 2 - 0.5 * offbool) /
-                  N * (N / 2 - np.arange(N)))
-
-
-def get_phasecorr2D(dimensions, axes=None, offbool=(False, False)):
-    """
-    Creates a phase correction array, to make the FFT of a Hermitian
-    array all real. This function, unlike get_phasecorr, outputs a 2D array!
-
-    Parameters
-    ----------
-    dimensions : sequence of ints
-        The shape of the output array. Should match whatever you want to apply
-        this array to (i.e., use foo.shape if you want to apply this to an
-        array foo)
-    axes : int or shape tuple, optional
-        explanation
-    offbool : tuple, optional
-        explanation
-
-    Returns
-    -------
-    pcorrmat : ndarray
-        phase correction array.
-
-    """
-    if axes is None:
-        axes = (0, 1)
-    elif isinstance(axes, np.compat.integer_types):
-        axes = (axes,)
-
-    N0, N1 = dimensions
-    offbool0, offbool1 = offbool
-
-    # define shift amounts, with optional offset by 1/2 for the indirect
-    # dimension
-    shift0 = (N0 / 2 - 0.5 * offbool0)
-    shift1 = (N1 / 2 - 0.5 * offbool1)
-
-    # the "neither 0 nor 1 in axes" case is trivial, but it might as well
-    # be fast, so only make these if they're needed
-    if (0 in axes) or (1 in axes):
-        n0, n1 = np.indices(dimensions)
-
-    pcorrmat = np.ones(dimensions, dtype='complex128')
-    if 0 in axes:
-        # integer division here; and half-step shift in the zero location
-        # should be taken care of by offbool
-        n0 -= N0 // 2
-        pcorrmat *= np.exp(-1.j * 2 * np.pi * n0 * shift0 / N0)
-    if 1 in axes:
-        n1 -= N1 // 2
-        pcorrmat *= np.exp(-1.j * 2 * np.pi * n1 * shift1 / N1)
-
-    return pcorrmat
-
-
 def states_to_mri(data, p0=0, offbool=(False, False), invert_sin=False):
     """
     converts states-like data to mri-like form. assumes that you have already
@@ -161,6 +87,113 @@ def states_to_mri(data, p0=0, offbool=(False, False), invert_sin=False):
         data_out[:, N2mid] /= 2
 
     return data_out
+
+
+def get_phasecorr(N, offbool):
+    """
+    Creates a phase correction array, to make the FFT of a Hermitian
+    array all real. **Only works in 1D right now!**
+    'N' is the length of the vector
+    'offbool' is a boolean that controls whether there's a dt/2 shift
+    in the time values:
+    - if time[N/2] is t = 0, set offbool = false
+    - if time[N/2] is t = dt/2, set offbool = true
+
+    Returns a 1D vector 'phasecorr' of length N.
+
+    This function assumes an even number of points, so it's yet not as general
+    as it could be.
+    """
+    # phasecorr = np.exp(-1j*2*np.pi*(N/2-0.5*offbool)/N*(N/2-np.arange(N)))
+
+    return np.exp(-1j * 2 * np.pi * (N / 2 - 0.5 * offbool) /
+                  N * (N / 2 - np.arange(N)))
+
+
+def get_phasecorr2D(dimensions, axes=None, offbool=(False, False)):
+    """
+    Creates a phase correction array, to make the FFT of a Hermitian
+    array all real. This function, unlike get_phasecorr, outputs a 2D array!
+
+    Parameters
+    ----------
+    dimensions : sequence of ints
+        The shape of the output array. Should match whatever you want to apply
+        this array to (i.e., use foo.shape if you want to apply this to an
+        array foo)
+    axes : int or shape tuple, optional
+        explanation
+    offbool : tuple, optional
+        explanation
+
+    Returns
+    -------
+    pcorrmat : ndarray
+        phase correction array.
+
+    """
+    if axes is None:
+        axes = (0, 1)
+    elif isinstance(axes, np.compat.integer_types):
+        axes = (axes,)
+
+    N0, N1 = dimensions
+    offbool0, offbool1 = offbool
+
+    # define shift amounts, with optional offset by 1/2 for the indirect
+    # dimension
+    shift0 = (N0 / 2 - 0.5 * offbool0)
+    shift1 = (N1 / 2 - 0.5 * offbool1)
+
+    # the "neither 0 nor 1 in axes" case is trivial, but it might as well
+    # be fast, so only make these if they're needed
+    if (0 in axes) or (1 in axes):
+        n0, n1 = np.indices(dimensions)
+
+    pcorrmat = np.ones(dimensions, dtype='complex128')
+    if 0 in axes:
+        # integer division here; and half-step shift in the zero location
+        # should be taken care of by offbool
+        n0 -= N0 // 2
+        pcorrmat *= np.exp(-1.j * 2 * np.pi * n0 * shift0 / N0)
+    if 1 in axes:
+        n1 -= N1 // 2
+        pcorrmat *= np.exp(-1.j * 2 * np.pi * n1 * shift1 / N1)
+
+    return pcorrmat
+
+
+def fft_phase_1d(origdata_2d):
+    """
+    This takes 2D data, and applies an fft and phase correction along 1
+    dimension only. The output is the "semi-FFT'd" data, from which we can take
+    individual 1D slices along t1.
+    """
+    N2, N1 = origdata_2d.shape
+    row, col = np.indices(origdata_2d.shape)
+    n2, n1 = row - N2 / 2, col - N1 / 2
+
+    # define shift amounts, with optional offset by 1/2 for the indirect
+    # dimension
+    t_shift_1 = (N1 / 2 - 1 / 2)
+    t_shift_2 = (N2 / 2)
+
+    # get frequencies in terms of point number
+    f_1 = n1 / N1
+    f_2 = n2 / N2
+
+    # make phase correction matrices pcorrmat =
+    # np.exp(-1.j*2*np.pi*f_2*t_shift_2)*np.exp(-1.j*2*np.pi*f_1*t_shift_1)
+    pcorrmat_f2 = np.exp(-1.j * 2 * np.pi * f_2 * t_shift_2)
+
+    # origdata_fft = np.fft.fftshift(np.fft.fft2(origdata_2d))
+    # origdata_fftr = (origdata_fft*pcorrmat).real
+
+    origdata_semifft = np.fft.fftshift(np.fft.fft(origdata_2d, axis=0), axes=0)
+    # origdata_semifft = np.fft.fft(origdata_2d,axis=0)
+    origdata_semifft_ph = origdata_semifft * pcorrmat_f2
+
+    return origdata_semifft_ph
 
 
 def sampling_mask(Ndense, Nsparse, offbool, lastpoint_bool=0):

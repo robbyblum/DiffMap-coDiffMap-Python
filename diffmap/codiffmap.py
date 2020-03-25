@@ -4,9 +4,9 @@
 # -- coDiffMap adaptation written by JARED ROVNY
 
 # -- processing
-# 1. states_to_mri
-# 2. fft_phase_1d
-# 3. get_phasecorr
+# 1. states_to_mri --> util.py
+# 2. fft_phase_1d --> util.py
+# 3. get_phasecorr --> util.py
 
 # -- preparation
 # 4. get_interesting_columns
@@ -14,7 +14,7 @@
 # 6. get_interesting_columns_all2D
 
 # -- sampling
-# 7. sampling_mask
+# 7. sampling_mask --> util.py
 # 8. stagger_sample
 # 9. sparsify_staggered
 
@@ -29,53 +29,17 @@
 # -- analysis
 # 16. peak_amplitudes
 
-# is it ok to use "from .utils import *" here or should I preserve the
-# namespace for the utility functions? Going to do the latter...
 import numpy as np
 import copy as copy
 from . import util
 
 
-# ---- data processing
-
-
-def fft_phase_1d(origdata_2d):
-    """
-    This takes 2D data, and applies an fft and phase correction along 1
-    dimension only. The output is the "semi-FFT'd" data, from which we can take
-    individual 1D slices along t1.
-    """
-    N2, N1 = origdata_2d.shape
-    row, col = np.indices(origdata_2d.shape)
-    n2, n1 = row - N2 / 2, col - N1 / 2
-
-    # define shift amounts, with optional offset by 1/2 for the indirect
-    # dimension
-    t_shift_1 = (N1 / 2 - 1 / 2)
-    t_shift_2 = (N2 / 2)
-
-    # get frequencies in terms of point number
-    f_1 = n1 / N1
-    f_2 = n2 / N2
-
-    # make phase correction matrices pcorrmat =
-    # np.exp(-1.j*2*np.pi*f_2*t_shift_2)*np.exp(-1.j*2*np.pi*f_1*t_shift_1)
-    pcorrmat_f2 = np.exp(-1.j * 2 * np.pi * f_2 * t_shift_2)
-
-    # origdata_fft = np.fft.fftshift(np.fft.fft2(origdata_2d))
-    # origdata_fftr = (origdata_fft*pcorrmat).real
-
-    origdata_semifft = np.fft.fftshift(np.fft.fft(origdata_2d, axis=0), axes=0)
-    # origdata_semifft = np.fft.fft(origdata_2d,axis=0)
-    origdata_semifft_ph = origdata_semifft * pcorrmat_f2
-
-    return origdata_semifft_ph
+# ---- data processing: all moved to util.py
 
 
 # ---- data preparation
 
 def get_interesting_columns(datapath, column_indices, spectrum_index, n_rows):
-    import numpy as np
     """
     Load "interesting" columns of data from a given 2d data set.
 
@@ -90,7 +54,7 @@ def get_interesting_columns(datapath, column_indices, spectrum_index, n_rows):
     origdata_2d = np.loadtxt(data_source, usecols=real_cols) \
         - 1.j * np.loadtxt(data_source, usecols=imag_cols)
 
-    origdata_2d_fft_ph = fft_phase_1d(origdata_2d)
+    origdata_2d_fft_ph = util.fft_phase_1d(origdata_2d)
 
     compressed_data = origdata_2d_fft_ph[column_indices, :]
     return compressed_data
@@ -109,7 +73,8 @@ def get_interesting_columns_all2D(datapath, column_indices, number_of_spectra,
                                   n_rows):
     """
     This will return a LIST of 2D DATA SETS. Each 2D spectrum in the list
-    will just be from the columns chosen by the user.
+    will just be from the columns chosen by the user. (actually it doesn't
+    return a list anymore...)
     """
 
     n_columns = len(column_indices)
