@@ -33,7 +33,7 @@
 # namespace for the utility functions? Going to do the latter...
 import numpy as np
 import copy as copy
-import .util
+from . import util
 
 
 # ---- data processing
@@ -368,9 +368,10 @@ def stagger_sample(N3d, Ndense, Nsparse, offbool):
                 sampling_mask_1[Ndense:2 * Ndense - 1]
             sampling_mask_2[Ndense + 1] = sampling_mask_1[2 * Ndense - 1]
         else:
-            # if offbool=0, we have an empty "NaN" at the 0 index -- so IGNORE
+            # if offbool=0, we need to keep the 0 index equal to "1": so IGNORE
             # the 0 point! left side: shift all to left, but then make sure the
             # 0th points wraps to the middle
+            sampling_mask_2[0] = 1
             sampling_mask_2[1:Ndense] = sampling_mask_1[2:Ndense + 1]
             sampling_mask_2[Ndense - 1] = sampling_mask_1[1]
             # right side: shift all to right, but then make sure the Nth point

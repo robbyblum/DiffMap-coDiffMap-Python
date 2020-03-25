@@ -6,7 +6,7 @@
 # is it ok to use "from .utils import *" here or should I preserve the
 # namespace for the utility functions? Going to do the latter...
 import numpy as np
-import .util
+from . import util
 
 
 def lin_alg_limit(mask_1D):

@@ -201,13 +201,11 @@ def sampling_mask(Ndense, Nsparse, offbool, lastpoint_bool=0):
     # make the length 2*Ndense output array, according to whether offbool is on
     # Note: for offbool = 0, we set the first point = 1 instead of nan. This
     #       way, np.nansum(row_mask_out) is the same in both cases.
-    # CAVEAT: THIS IS NOT THE CASE IN THIS FUNCTION YET FOR SOME REASON
     if offbool:
         row_mask_out = np.concatenate((row_mask_pos[::-1], row_mask_pos))
     else:
-        row_mask_out = np.concatenate(([np.nan], row_mask_pos[:0:-1],
-                                       row_mask_pos))
-        # row_mask_out = np.concatenate(([1], row_mask_pos[:0:-1],
-        # row_mask_pos))
+        # row_mask_out = np.concatenate(([np.nan], row_mask_pos[:0:-1],
+        #                                row_mask_pos))
+        row_mask_out = np.concatenate(([1], row_mask_pos[:0:-1], row_mask_pos))
 
     return row_mask_out
