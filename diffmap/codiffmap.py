@@ -280,7 +280,7 @@ def difference_map_star(data_t, measured_points, mask, offbool, push_points,
 # ---- sampling
 
 
-def stagger_sample(N3d, Ndense, Nsparse, offbool):
+def stagger_sample(N3D, Ndense, Nsparse, offbool):
     """
     This function takes the size of a 3d set of data (multiple 2d data sets),
     and an Nt1 value, and makes a sampling pattern that is staggered across the
@@ -299,52 +299,33 @@ def stagger_sample(N3d, Ndense, Nsparse, offbool):
     """
 
     # get a quasi-even 1d sampling pattern
-    sampling_mask_1 = util.sampling_mask(Ndense, Nsparse, offbool, 1)
-    sampling_mask_2 = sampling_mask_1.copy()
+    sample_mask = util.sampling_mask(Ndense, Nsparse, offbool, 1)
     # start off the sampling mask with this pattern
-    stagger_sampling_mask = []
-
-    # from here on down, Ndense refers to the full size of the sampling mask,
-    # so e.g. 128 -> 256 Ndense*=2
+    stagger_sampling_mask = np.zeros((N3D, 2 * Ndense))
+    stagger_sampling_mask[0, :] = sample_mask
 
     # now begin "stepping" the pattern further and further out, always keeping
     # the first point.
-    for i in np.arange(N3d):
-
-        if offbool:
-            sampling_mask_2[Ndense - 1:Ndense + 1] = 1
-        else:
-            sampling_mask_2[Ndense] = 1
-        stagger_sampling_mask.append(list(sampling_mask_2))
-        sampling_mask_1 = sampling_mask_2.copy()
-
-        sampling_mask_2[:] = np.full(2 * Ndense, np.nan)
-
+    for i in np.arange(1, N3D):
         # in each case below, keep the middle one point (or middle two points)
         # unchanged; should always be 1
         if(offbool == 1):
-            # left side: shift all to left, but then make sure the 0th points
-            # wraps to the middle
-            sampling_mask_2[0:Ndense - 1] = sampling_mask_1[1:Ndense]
-            sampling_mask_2[Ndense - 2] = sampling_mask_1[0]
-            # right side: shift all to right, but then make sure the Nth point
-            # wraps to the middle
-            sampling_mask_2[Ndense + 1:2 * Ndense] = \
-                sampling_mask_1[Ndense:2 * Ndense - 1]
-            sampling_mask_2[Ndense + 1] = sampling_mask_1[2 * Ndense - 1]
+            # left side: roll all to left, making sure the 0th point wraps to
+            # the middle
+            sample_mask[0:Ndense - 1] = np.roll(sample_mask[0:Ndense - 1], -1)
+            # right side: roll all to right, making sure the Nth point wraps to
+            # the middle
+            sample_mask[Ndense + 1:] = np.roll(sample_mask[Ndense + 1:], +1)
         else:
             # if offbool=0, we need to keep the 0 index equal to "1": so IGNORE
-            # the 0 point! left side: shift all to left, but then make sure the
-            # 0th points wraps to the middle
-            sampling_mask_2[0] = 1
-            sampling_mask_2[1:Ndense] = sampling_mask_1[2:Ndense + 1]
-            sampling_mask_2[Ndense - 1] = sampling_mask_1[1]
-            # right side: shift all to right, but then make sure the Nth point
-            # wraps to the middle
-            sampling_mask_2[Ndense + 1:2 * Ndense] = \
-                sampling_mask_1[Ndense:2 * Ndense - 1]
-            sampling_mask_2[Ndense + 1] = sampling_mask_1[2 * Ndense - 1]
+            # the 0th point! left side: roll all to left, making sure the 1st
+            # point wraps to the middle
+            sample_mask[1:Ndense] = np.roll(sample_mask[1:Ndense], -1)
+            # right side: roll all to right, making sure the Nth point wraps to
+            # the middle
+            sample_mask[Ndense + 1:] = np.roll(sample_mask[Ndense + 1:], +1)
 
+        stagger_sampling_mask[i, :] = sample_mask
     return stagger_sampling_mask
 
 
