@@ -329,7 +329,7 @@ def stagger_sample(N3D, Ndense, Nsparse, offbool):
     return stagger_sampling_mask
 
 
-def sparsify_staggered(data, Nsparse, N3D, offbool):
+def sparsify_staggered(data, Nsparse, offbool):
     """
     "Undersamples" a dense data set using the staggered pattern.
     **
@@ -351,9 +351,10 @@ def sparsify_staggered(data, Nsparse, N3D, offbool):
     # If Nsparse > Ndense, yell at the user and return the input
     # data without modification.
 
-    # Note: the data as input has 'data[2d slice][f2][t1]', so index
+    # Note: the data as input has 'data[2d_slice, f2, t1]', so index
     # accordingly!
-    Ndense = np.int(0.5 * len(data[0][0]))
+    N3D, Ncols, Ndense = data.shape
+    Ndense //= 2
     sparse_data = np.copy(data)
     measured_points = np.copy(data)
 
@@ -366,9 +367,8 @@ def sparsify_staggered(data, Nsparse, N3D, offbool):
         # NOTICE: stagger_sampling_mask is only 2D, it DOES NOT have a 3rd
         # dimension! (sampling identical for all columns)
         for i in np.arange(N3D):
-            for j in np.arange(len(data[0])):
-                sparse_data[i][j][np.isnan(stagger_sampling_mask[i])] = 0
-                measured_points[i][j] *= stagger_sampling_mask[i]
+            sparse_data[i, :, np.isnan(stagger_sampling_mask[i, :])] = 0
+            measured_points[i, :, :] *= stagger_sampling_mask[i, :]
     else:
         print("ERROR: Nsparse > Ndense !!")
         print("Returning the input data unmodified.")
