@@ -47,6 +47,7 @@ def get_interesting_columns(datapath, column_indices, spectrum_index, n_rows):
     """
 
     data_source = str(datapath) + "_" + str(spectrum_index) + ".txt"
+    # data_source = datapath
 
     real_cols = list(range(0, n_rows * 2, 2))
     imag_cols = list(range(1, n_rows * 2, 2))
@@ -96,12 +97,12 @@ def setup_and_run_codiffmap(data_in, Nsparse, mask, offbool, push_param,
     Shortcut to set up the required input data and run the diffmap function...
     Note: mask needs to correspond to "data_in," column by column.
     """
-    N3D = data.shape[0]
-    Ncols = data.shape[1]
-    Ndense = data.shape[-1] // 2
+    N3D = data_in.shape[0]
+    Ncols = data_in.shape[1]
+    Ndense = data_in.shape[-1] // 2
 
     data_gaps, meas_points, push_points = sparsify_staggered(data_in, Nsparse,
-                                                             N3D, offbool)
+                                                             offbool)
     data_out = np.copy(data_gaps)
 
     for slice2d in np.arange(N3D):
@@ -200,6 +201,70 @@ def make_push_points(data, stagger_sampling_mask):
                         break
             push_points[spec, col, :] = push_points_1d
     return np.asarray(push_points)
+
+
+def make_proxy_map(stagger_sampling_mask, offbool):
+    """
+    I'm splitting make_push_points into multiple functions. This one makes a
+    proxy map: the output tells you which slice your proxy should come from,
+    for every unsampled point.
+    """
+    nslice, nrow = stagger_sampling_mask.shape
+    proxy_map = np.zeros((nslice, nrow))
+    Ndense = nrow // 2
+
+    for m in np.arange(nslice):
+        # proxy_map[m, ~np.isnan(stagger_sampling_mask[m, :])] = np.nan
+        # proxy_map[m, ~np.isnan(stagger_sampling_mask[m, :])] = m
+        # print(proxy_map[m, 128 - 8:128 + 8])
+        proxy_map[m, ~np.isnan(stagger_sampling_mask[m, :])] = -1
+
+        for n in np.arange(Ndense):
+            if proxy_map[m, n] == 0:
+                for spec2 in np.arange(2 * nslice):
+                    # add +1, -1, +2, -2, +3, -3... to the spectrum index
+                    dspec = m + (spec2 // 2 + 1) * (-1)**spec2
+                    # make sure our new spectrum index isn't out of bounds
+                    if 0 <= dspec < nslice:
+                        # if the point has been sampled in this spectrum,
+                        # use it, and stop looking
+                        if stagger_sampling_mask[dspec, n] == 1:
+                            proxy_map[m, n] = dspec
+                            break
+                # if there were no sampled point found, break with error.
+                else:
+                    print('ERROR: no suitable data point found!')
+                    break
+    if offbool:
+        proxy_map[:, Ndense + 1:] = proxy_map[:, Ndense - 2::-1]
+    else:
+        proxy_map[:, Ndense + 1:] = proxy_map[:, Ndense - 1:0:-1]
+    return proxy_map.astype(int)
+
+
+def make_push_points_new(data, proxy_map):
+    """
+    New version of make_push_points. Uses the output of make_proxy_map.
+    This function will take your data (many 2D slices), and a staggered
+    sampling schedule, and make a data array of "push" points, f2-column by
+    f2-column. For a given 2D slice, these push points will be:
+    -- at measured t1 points: =NaN
+    -- at unmeasured t1 points: is equal to the data at the
+    same t1, but from a different (the closest available) 2D slice.
+    """
+
+    n_slices, n_rows, n_columns = data.shape
+
+    push_points = np.zeros((n_slices, n_rows, n_columns), dtype=np.complex)
+
+    bcast = proxy_map >= 0
+    push_points[~bcast, :] = np.nan
+
+    for n in np.arange(n_slices):
+        pmap = proxy_map[n, bcast[n, :]]
+        push_points[n, bcast[n, :], :] = data[pmap, bcast[n, :], :]
+
+    return push_points
 
 
 def p1_proj(data_t, mask, offbool):
