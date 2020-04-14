@@ -151,58 +151,6 @@ def run_codiffmap_1D(data_in, N_iter, measured_points, mask, offbool,
     return data_out
 
 
-def make_push_points(data, stagger_sampling_mask):
-    """
-    This function will take your data (many 2D slices), and a staggered
-    sampling schedule, and make a data array of "push" points, f2-column by
-    f2-column. For a given 2D slice, these push points will be:
-    -- at measured t1 points: =NaN
-    -- at unmeasured t1 points: is equal to the data at the
-    same t1, but from a different (the closest available) 2D slice.
-    """
-
-    n_slices, n_columns, n_rows = data.shape
-
-    push_points = np.zeros((n_slices, n_columns, n_rows), dtype=np.complex)
-    push_points_1d = np.zeros(n_rows, dtype=np.complex)
-
-    # walk through the data column-by-column
-    for col in np.arange(n_columns):
-
-        # walk through the data spectrum-by-spectrum
-        for spec in np.arange(n_slices):
-            # first, initialize: push_points_1d is NaN for sampled points (this
-            # basically inverts which entries are NaN relative to
-            # stagger_sampling_mask)
-            push_points_1d = np.where(np.isnan(stagger_sampling_mask[spec]),
-                                      0, np.nan).astype(np.complex)
-
-            # now, for this particular {column,spectrum},
-            # and FOR EACH POINT IN PUSH_POINTS, walk through the other
-            # spectra and find a suitable data point
-            for i in np.arange(n_rows):
-                if ~np.isnan(push_points_1d[i]):
-                    # now, walk through the spectra again: for e.g. a missing
-                    # point in spectrum=3, look at spectra #4,2,5,1,...,etc.,
-                    # until a point is found
-                    for spec2 in np.arange(2 * n_slices):
-                        # add +1, -1, +2, -2, +3, -3... to the spectrum index
-                        dspec = spec + (spec2 // 2 + 1) * (-1)**spec2
-                        # make sure our new spectrum index isn't out of bounds
-                        if 0 <= dspec < n_slices:
-                            # if the point has been sampled in this spectrum,
-                            # use it, and stop looking
-                            if stagger_sampling_mask[dspec][i] == 1:
-                                push_points_1d[i] = data[dspec, col, i]
-                                break
-                    # if there were no sampled point found, break with error.
-                    else:
-                        print('ERROR: no suitable data point found!')
-                        break
-            push_points[spec, col, :] = push_points_1d
-    return np.asarray(push_points)
-
-
 def make_proxy_map(stagger_sampling_mask, offbool):
     """
     I'm splitting make_push_points into multiple functions. This one makes a
@@ -242,7 +190,7 @@ def make_proxy_map(stagger_sampling_mask, offbool):
     return proxy_map.astype(int)
 
 
-def make_push_points_new(data, proxy_map):
+def make_push_points(data, proxy_map):
     """
     New version of make_push_points. Uses the output of make_proxy_map.
     This function will take your data (many 2D slices), and a staggered
@@ -425,7 +373,8 @@ def sparsify_staggered(data, Nsparse, offbool):
 
     if Ndense >= Nsparse:
         stagger_sampling_mask = stagger_sample(N3D, Ndense, Nsparse, offbool)
-        push_points = make_push_points(data, stagger_sampling_mask)
+        proxy_map = make_proxy_map(stagger_sampling_mask, offbool)
+        push_points = make_push_points(data, proxy_map)
 
         # for this function, we need to repeat these steps for each of the data
         # sets along the 3rd dim. and also along all included columns

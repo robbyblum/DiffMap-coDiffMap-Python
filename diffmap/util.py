@@ -2,6 +2,7 @@
 # getting them all in one place
 
 import numpy as np
+import nmrglue as ng
 
 
 def states_to_mri(data, p0=0, offbool=(False, False), invert_sin=False):
