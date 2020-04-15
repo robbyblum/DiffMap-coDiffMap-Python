@@ -20,7 +20,7 @@ def load_pseudo_3D_data(path, nspectra):
 
         if n == 1:
             # only create this once
-            pcorr2 = diffmap.get_phasecorr2D((N1, N2), axes=1,
+            pcorr2 = get_phasecorr2D((N1, N2), axes=1,
                                              offbool=(True, False))
 
         data = ng.proc_base.fft_positive(data) * pcorr2
@@ -136,8 +136,7 @@ def pipe_to_mri(dic, data, p0=0):
     dic, data = ng.pipe_proc.sp(dic, data, off=0.5, end=1.0, pow=1.0, c=1.0)
     dic, data = ng.pipe_proc.tp(dic, data, hyper=True)
 
-    data = diffmap.states_to_mri(data, p0=p0, offbool=(True, False),
-                                 invert_sin=True)
+    data = states_to_mri(data, p0=p0, offbool=(True, False), invert_sin=True)
 
     return dic, data
 
