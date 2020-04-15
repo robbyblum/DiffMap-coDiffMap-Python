@@ -94,25 +94,31 @@ def setup_and_run_codiffmap(data_in, Nsparse, mask, offbool, push_param,
     Shortcut to set up the required input data and run the diffmap function...
     Note: mask needs to correspond to "data_in," column by column.
     """
-    N3D = data_in.shape[0]
-    Ncols = data_in.shape[1]
-    Ndense = data_in.shape[-1] // 2
+    N3D, Ndense, Ncols = data_in.shape
+    Ndense //= 2
 
     data_gaps, meas_points, push_points = sparsify_staggered(data_in, Nsparse,
                                                              offbool)
     data_out = np.copy(data_gaps)
 
+    # temporarily hard-coding the axis here. It's probably still backwards.
+    linalg_lims = np.abs(mask).sum(axis=0)
+
     for slice2d in np.arange(N3D):
         for column in np.arange(Ncols):
-            data_gaps_1d = data_gaps[slice2d, column, :]
-            meas_points_1d = meas_points[slice2d, column, :]
-            mask_1d = mask[column, :]
-            push_points_1d = push_points[slice2d, column, :]
+            # if there are no nonzero mask points in this column, skip it
+            if linalg_lims[column] == 0:
+                continue
+
+            data_gaps_1d = data_gaps[slice2d, :, column]
+            mask_1d = mask[:, column]
+            meas_points_1d = meas_points[slice2d, :, column]
+            push_points_1d = push_points[slice2d, :, column]
 
             data_out_1d = run_codiffmap_1D(data_gaps_1d, N_iter,
                                            meas_points_1d, mask_1d, offbool,
                                            push_points_1d, push_param)
-            data_out[slice2d, column, :] = data_out_1d
+            data_out[slice2d, :, column] = data_out_1d
 
     return data_out
 
@@ -159,9 +165,6 @@ def make_proxy_map(stagger_sampling_mask, offbool):
     Ndense = nrow // 2
 
     for m in np.arange(nslice):
-        # proxy_map[m, ~np.isnan(stagger_sampling_mask[m, :])] = np.nan
-        # proxy_map[m, ~np.isnan(stagger_sampling_mask[m, :])] = m
-        # print(proxy_map[m, 128 - 8:128 + 8])
         proxy_map[m, ~np.isnan(stagger_sampling_mask[m, :])] = -1
 
         for n in np.arange(Ndense):
@@ -363,14 +366,14 @@ def sparsify_staggered(data, Nsparse, offbool):
 
     # Note: the data as input has 'data[2d_slice, f2, t1]', so index
     # accordingly!
-    N3D, Ncols, Ndense = data.shape
+    N3D, Ndense, Ncols = data.shape
     Ndense //= 2
     sparse_data = np.copy(data)
     measured_points = np.copy(data)
 
     if Ndense >= Nsparse:
-        stagger_sampling_mask = stagger_sample(N3D, Ndense, Nsparse, offbool)
-        proxy_map = make_proxy_map(stagger_sampling_mask, offbool)
+        staggered_mask = stagger_sample(N3D, Ndense, Nsparse, offbool)
+        proxy_map = make_proxy_map(staggered_mask, offbool)
         push_points = make_push_points(data, proxy_map)
 
         # for this function, we need to repeat these steps for each of the data
@@ -378,8 +381,8 @@ def sparsify_staggered(data, Nsparse, offbool):
         # NOTICE: stagger_sampling_mask is only 2D, it DOES NOT have a 3rd
         # dimension! (sampling identical for all columns)
         for i in np.arange(N3D):
-            sparse_data[i, :, np.isnan(stagger_sampling_mask[i, :])] = 0
-            measured_points[i, :, :] *= stagger_sampling_mask[i, :]
+            sparse_data[i, np.isnan(staggered_mask[i, :]), :] = 0
+            measured_points[i, :, :] *= staggered_mask[i, :].reshape((-1, 1))
     else:
         print("ERROR: Nsparse > Ndense !!")
         print("Returning the input data unmodified.")

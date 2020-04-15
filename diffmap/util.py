@@ -5,6 +5,36 @@ import numpy as np
 import nmrglue as ng
 
 
+def load_pseudo_3D_data(path, nspectra):
+    """
+    Load a pseudo-3D data set, nmrglue style, do states-to-mri conversion
+    on all of them, and return them as a 3D array.
+    """
+    for n in np.arange(1, nspectra + 1):
+        # not fully proper, use os to make it nice later:
+        datapath = path + "/{}/test.fid".format(n)
+
+        dic, data = ng.pipe.read(datapath)
+        dic, data = pipe_to_mri(dic, data, p0=-60.4)
+        N1, N2 = data.shape
+
+        if n == 1:
+            # only create this once
+            pcorr2 = diffmap.get_phasecorr2D((N1, N2), axes=1,
+                                             offbool=(True, False))
+
+        data = ng.proc_base.fft_positive(data) * pcorr2
+
+        data = np.reshape(data, (1, N1, N2))
+        if n > 1:
+            data_out = np.concatenate([data_out, data], axis=0)
+        else:
+            data_out = data.copy()
+
+    # return the final dictionary, whatever, good enough for now
+    return dic, data_out
+
+
 def states_to_mri(data, p0=0, offbool=(False, False), invert_sin=False):
     """
     converts states-like data to mri-like form. assumes that you have already
@@ -88,6 +118,28 @@ def states_to_mri(data, p0=0, offbool=(False, False), invert_sin=False):
         data_out[:, N2mid] /= 2
 
     return data_out
+
+
+def pipe_to_mri(dic, data, p0=0):
+    """
+    Do the minimal processing to convert nmrPipe data to our mri-like format.
+    Start with what you get from "dic, data0 = ng.pipe.read(path)" or whatever.
+    Note: This is currently replicating our processing for JMR and J. Bio NMR,
+    but I wouldn't do this in this order for future data. Apodize before
+    zero-filling!
+    """
+    dic, data = ng.pipe_proc.zf(dic, data, zf=0, auto=True)
+    dic, data = ng.pipe_proc.sp(dic, data, off=0.5, end=1.0, pow=1.0, c=1.0)
+    dic, data = ng.pipe_proc.tp(dic, data, hyper=True)
+
+    dic, data = ng.pipe_proc.zf(dic, data, zf=0, auto=True)
+    dic, data = ng.pipe_proc.sp(dic, data, off=0.5, end=1.0, pow=1.0, c=1.0)
+    dic, data = ng.pipe_proc.tp(dic, data, hyper=True)
+
+    data = diffmap.states_to_mri(data, p0=p0, offbool=(True, False),
+                                 invert_sin=True)
+
+    return dic, data
 
 
 def get_phasecorr(N, offbool):
@@ -190,7 +242,7 @@ def fft_phase_1d(origdata_2d):
     # origdata_fft = np.fft.fftshift(np.fft.fft2(origdata_2d))
     # origdata_fftr = (origdata_fft*pcorrmat).real
 
-    origdata_semifft = np.fft.fftshift(np.fft.fft(origdata_2d, axis=0), axes=0)
+    origdata_semifft = ng.proc_base.fft_positive(origdata_2d.T).T
     # origdata_semifft = np.fft.fft(origdata_2d,axis=0)
     origdata_semifft_ph = origdata_semifft * pcorrmat_f2
 
