@@ -49,7 +49,7 @@ def get_interesting_columns(datapath, column_indices, spectrum_index, n_rows):
     real_cols = list(range(0, n_rows * 2, 2))
     imag_cols = list(range(1, n_rows * 2, 2))
     origdata_2d = np.loadtxt(data_source, usecols=real_cols) \
-        - 1.j * np.loadtxt(data_source, usecols=imag_cols)
+        + 1.j * np.loadtxt(data_source, usecols=imag_cols)
 
     origdata_2d_fft_ph = util.fft_phase_1d(origdata_2d)
 

@@ -20,8 +20,7 @@ def load_pseudo_3D_data(path, nspectra):
 
         if n == 1:
             # only create this once
-            pcorr2 = get_phasecorr2D((N1, N2), axes=1,
-                                             offbool=(True, False))
+            pcorr2 = get_phasecorr2D((N1, N2), axes=1, offbool=(True, False))
 
         data = ng.proc_base.fft_positive(data) * pcorr2
 
