@@ -157,7 +157,7 @@ def get_phasecorr(N, offbool):
     """
     # phasecorr = np.exp(-1j*2*np.pi*(N/2-0.5*offbool)/N*(N/2-np.arange(N)))
 
-    return np.exp(-1j * 2 * np.pi * (N / 2 - 0.5 * offbool) /
+    return np.exp(+1j * 2 * np.pi * (N / 2 - 0.5 * offbool) /
                   N * (N / 2 - np.arange(N)))
 
 
@@ -206,10 +206,10 @@ def get_phasecorr2D(dimensions, axes=None, offbool=(False, False)):
         # integer division here; any half-step shift in the zero location
         # should be taken care of by offbool
         n0 -= N0 // 2
-        pcorrmat *= np.exp(-1.j * 2 * np.pi * n0 * shift0 / N0)
+        pcorrmat *= np.exp(+1.j * 2 * np.pi * n0 * shift0 / N0)
     if 1 in axes:
         n1 -= N1 // 2
-        pcorrmat *= np.exp(-1.j * 2 * np.pi * n1 * shift1 / N1)
+        pcorrmat *= np.exp(+1.j * 2 * np.pi * n1 * shift1 / N1)
 
     return pcorrmat
 

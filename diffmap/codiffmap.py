@@ -28,7 +28,7 @@
 
 import numpy as np
 from . import util
-
+from nmrglue.process.proc_base import fft_positive, ifft_positive
 
 # ---- data processing: all moved to util.py
 
@@ -175,7 +175,7 @@ def p1_proj(data_t, mask, offbool):
     IFFTs the data before returning it.
     """
     # FFT input data
-    data_f = np.fft.fftshift(np.fft.fft(data_t))
+    data_f = fft_positive(data_t)
 
     # get the phase correction wave
     phasecorr = util.get_phasecorr(len(data_f), offbool)
@@ -190,7 +190,7 @@ def p1_proj(data_t, mask, offbool):
 
     # put data back into time domain by unphasing and IFFTing
     # the data becomes complex again, of course
-    p1_data_t = np.fft.ifft(np.fft.ifftshift(data_f_ph / phasecorr))
+    p1_data_t = ifft_positive(data_f_ph / phasecorr)
 
     return p1_data_t
 
