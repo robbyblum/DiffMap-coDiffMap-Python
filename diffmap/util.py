@@ -3,6 +3,7 @@
 
 import numpy as np
 import nmrglue as ng
+from nmrglue.process.proc_base import fft_positive, ifft_positive
 
 
 def load_pseudo_3D_data(path, nspectra):
@@ -22,7 +23,7 @@ def load_pseudo_3D_data(path, nspectra):
             # only create this once
             pcorr2 = get_phasecorr2D((N1, N2), axes=1, offbool=(True, False))
 
-        data = ng.proc_base.fft_positive(data) * pcorr2
+        data = fft_positive(data) * pcorr2
 
         data = np.reshape(data, (1, N1, N2))
         if n > 1:
@@ -127,13 +128,23 @@ def pipe_to_mri(dic, data, p0=0):
     but I wouldn't do this in this order for future data. Apodize before
     zero-filling!
     """
-    dic, data = ng.pipe_proc.zf(dic, data, zf=0, auto=True)
-    dic, data = ng.pipe_proc.sp(dic, data, off=0.5, end=1.0, pow=1.0, c=1.0)
-    dic, data = ng.pipe_proc.tp(dic, data, hyper=True)
+    data = data.astype('complex128')
+    data = ng.proc_base.zf_auto(data)
+    data = ng.proc_base.sp(data, off=0.5)
+    data = ng.proc_base.tp(data, hyper=1)
 
-    dic, data = ng.pipe_proc.zf(dic, data, zf=0, auto=True)
-    dic, data = ng.pipe_proc.sp(dic, data, off=0.5, end=1.0, pow=1.0, c=1.0)
-    dic, data = ng.pipe_proc.tp(dic, data, hyper=True)
+    data = ng.proc_base.zf_auto(data)
+    data = ng.proc_base.sp(data, off=0.5)
+    data = ng.proc_base.tp(data, hyper=1)
+
+    # data = data.astype('complex128')
+    # dic, data = ng.pipe_proc.zf(dic, data, zf=0, auto=True)
+    # dic, data = ng.pipe_proc.sp(dic, data, off=0.5, end=1.0, pow=1.0, c=1.0)
+    # dic, data = ng.pipe_proc.tp(dic, data, hyper=True)
+    #
+    # dic, data = ng.pipe_proc.zf(dic, data, zf=0, auto=True)
+    # dic, data = ng.pipe_proc.sp(dic, data, off=0.5, end=1.0, pow=1.0, c=1.0)
+    # dic, data = ng.pipe_proc.tp(dic, data, hyper=True)
 
     data = states_to_mri(data, p0=p0, offbool=(True, False), invert_sin=True)
 
@@ -240,7 +251,7 @@ def fft_phase_1d(origdata_2d):
     # origdata_fft = np.fft.fftshift(np.fft.fft2(origdata_2d))
     # origdata_fftr = (origdata_fft*pcorrmat).real
 
-    origdata_semifft = ng.proc_base.fft_positive(origdata_2d.T).T
+    origdata_semifft = fft_positive(origdata_2d.T).T
     # origdata_semifft = np.fft.fft(origdata_2d,axis=0)
     origdata_semifft_ph = origdata_semifft * pcorrmat_f2
 
