@@ -16,6 +16,7 @@ def load_pseudo_3D_data(path, nspectra):
         datapath = path + "/{}/test.fid".format(n)
 
         dic, data = ng.pipe.read(datapath)
+        data = data.astype('complex128')  # may not matter yet
         dic, data = pipe_to_mri(dic, data, p0=-60.4)
         N1, N2 = data.shape
 
