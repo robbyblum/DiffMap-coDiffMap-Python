@@ -203,7 +203,7 @@ def get_phasecorr2D(dimensions, axes=None, offbool=(False, False)):
 
     pcorrmat = np.ones(dimensions, dtype='complex128')
     if 0 in axes:
-        # integer division here; and half-step shift in the zero location
+        # integer division here; any half-step shift in the zero location
         # should be taken care of by offbool
         n0 -= N0 // 2
         pcorrmat *= np.exp(-1.j * 2 * np.pi * n0 * shift0 / N0)

@@ -9,9 +9,9 @@
 # 3. get_phasecorr --> util.py
 
 # -- preparation
-# 4. get_interesting_columns
-# 5. get_interesting_mask_columns
-# 6. get_interesting_columns_all2D
+# 4. get_interesting_columns DELETED
+# 5. get_interesting_mask_columns DELETED
+# 6. get_interesting_columns_all2D DELETED
 
 # -- sampling
 # 7. sampling_mask --> util.py
@@ -33,56 +33,7 @@ from . import util
 # ---- data processing: all moved to util.py
 
 
-# ---- data preparation
-
-def get_interesting_columns(datapath, column_indices, spectrum_index, n_rows):
-    """
-    Load "interesting" columns of data from a given 2d data set.
-
-    This function is designed to keep only the relevant columns in memory,
-    since we need a lot of local data for the projection method.
-    """
-
-    data_source = str(datapath) + "_" + str(spectrum_index) + ".txt"
-    # data_source = datapath
-
-    real_cols = list(range(0, n_rows * 2, 2))
-    imag_cols = list(range(1, n_rows * 2, 2))
-    origdata_2d = np.loadtxt(data_source, usecols=real_cols) \
-        + 1.j * np.loadtxt(data_source, usecols=imag_cols)
-
-    origdata_2d_fft_ph = util.fft_phase_1d(origdata_2d)
-
-    compressed_data = origdata_2d_fft_ph[column_indices, :]
-    return compressed_data
-
-
-def get_interesting_mask_columns(mask, column_indices):
-    """
-    Load "interesting" mask columns. Very simple function.
-    """
-
-    compressed_mask = mask[column_indices, :]
-    return compressed_mask
-
-
-def get_interesting_columns_all2D(datapath, column_indices, number_of_spectra,
-                                  n_rows):
-    """
-    This will return a LIST of 2D DATA SETS. Each 2D spectrum in the list
-    will just be from the columns chosen by the user. (actually it doesn't
-    return a list anymore...)
-    """
-
-    n_columns = len(column_indices)
-
-    all_relevant_data = np.zeros((number_of_spectra, n_columns, n_rows),
-                                 dtype=np.complex)
-    for spectrum_index in range(1, number_of_spectra + 1):
-        new_data = get_interesting_columns(datapath, column_indices,
-                                           spectrum_index, n_rows)
-        all_relevant_data[spectrum_index - 1, :, :] = new_data
-    return all_relevant_data
+# ---- data preparation: deleted
 
 
 # ---- coDiffMap functions
